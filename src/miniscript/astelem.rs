@@ -815,3 +815,45 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Terminal<Pk, Ctx> {
         }
     }
 }
+
+impl<'a, Pk: MiniscriptKey, Ctx: ScriptContext> IntoIterator for &'a Terminal<Pk, Ctx> {
+    type Item = &'a Pk;
+    type IntoIter = Box<dyn Iterator<Item = &'a Pk> + 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        use std::iter;
+
+        match self {
+            Terminal::True => Box::new(iter::empty()),
+            Terminal::False => Box::new(iter::empty()),
+            Terminal::PkK(ref pk) => Box::new(iter::once(pk)),
+            Terminal::PkH(_) => Box::new(iter::empty()),
+            Terminal::After(_) => Box::new(iter::empty()),
+            Terminal::Older(_) => Box::new(iter::empty()),
+            Terminal::Sha256(_) => Box::new(iter::empty()),
+            Terminal::Hash256(_) => Box::new(iter::empty()),
+            Terminal::Ripemd160(_) => Box::new(iter::empty()),
+            Terminal::Hash160(_) => Box::new(iter::empty()),
+            Terminal::Alt(ref i) => i.into_iter(),
+            Terminal::Swap(ref i) => i.into_iter(),
+            Terminal::Check(ref i) => i.into_iter(),
+            Terminal::DupIf(ref i) => i.into_iter(),
+            Terminal::Verify(ref i) => i.into_iter(),
+            Terminal::NonZero(ref i) => i.into_iter(),
+            Terminal::ZeroNotEqual(ref i) => i.into_iter(),
+            Terminal::AndV(ref i1, ref i2)
+            | Terminal::AndB(ref i1, ref i2)
+            | Terminal::OrB(ref i1, ref i2)
+            | Terminal::OrD(ref i1, ref i2)
+            | Terminal::OrC(ref i1, ref i2)
+            | Terminal::OrI(ref i1, ref i2) => Box::new(i1.into_iter().chain(i2.into_iter())),
+            Terminal::AndOr(ref i1, ref i2, ref i3) => {
+                Box::new(i1.into_iter().chain(i2.into_iter()).chain(i3.into_iter()))
+            }
+            Terminal::Thresh(_, ref scripts) => {
+                Box::new(scripts.iter().map(|s| s.into_iter()).flatten())
+            }
+            Terminal::Multi(_, ref pks) => Box::new(pks.iter()),
+        }
+    }
+}
